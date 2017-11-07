@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+#  see sample config "ucs.cfg" for template structure
+
+import os, sys, platform, subprocess, time, argparse, re, getpass
+from ucsmsdk.ucshandle import UcsHandle
+#import pdb
+
+HEADER = '\033[95m'
+OKBLUE = '\033[94m'
+OKGREEN = '\033[92m'
+OKMAG = '\033[95m'
+WARNING = '\033[93m'
+FAIL = '\033[91m'
+ENDC = '\033[0m'
+CYAN = '\033[96m'
+WHITE = '\033[97m'
+ALERT = '\033[93m'
+GREY = '\033[90m'
+BLACK = '\033[90m'
+
+parser = argparse.ArgumentParser()
+parser.add_argument('env')
+parser.add_argument('--user', type=str)
+
+args = parser.parse_args()
+host = args.env
+
+def ucs_cfli():
+    import ConfigParser
+
+    config = ConfigParser.RawConfigParser()
+    config.read(os.path.expanduser("~/.config/ucs.cfg"))
+
+    hostname = config.get(host, "hostname")
+    username = args.user
+    password = getpass.getpass('Password:')
+
+    handle = UcsHandle(hostname, username, password)
+    handle.login()
+    return handle
+
+handle = ucs_cfli()
+
+def start():
+    try:
+        handle.login()
+        print OKGREEN, "Connected!", ENDC
+    except:
+        print FAIL, "Failed to connect", ENDC
+
+def end():
+    try:
+        handle.logout()
+        print OKGREEN, "Logged out", ENDC
+    except:
+        print FAIL, "Failed to logout!", ENDC
+
+def faults_dump():
+    start()
+    mo_list = handle.query_classid("FaultInst")
+    for mo in mo_list:
+        if "cleared" not in mo.severity and "info" not in mo.severity:
+            if "major" in mo.severity:
+                print mo.created, FAIL, mo.dn, ENDC, mo.descr
+            elif "minor" in mo.severity:
+                print mo.created, ALERT, mo.dn, ENDC, mo.descr
+            elif "warning" in mo.severity:
+                print mo.created, OKBLUE, mo.dn, ENDC, mo.descr
+            else:
+                print mo.created, CYAN, mo.dn, ENDC, mo.descr
+    end()
+
+faults_dump()
