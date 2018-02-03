@@ -1,0 +1,105 @@
+#!/usr/bin/python
+
+'''
+#  Please make sure you have the config file, default is ./ucstools.cfg, ~/.config/ucstools.cfg or /etc/ucstools.cfg
+#  see sample config "ucstools.cfg" for template structure
+'''
+
+import argparse
+import getpass
+import sys
+sys.path.insert(0,'.')
+
+import lib.ucstcfg
+import lib.printer
+
+from ucsmsdk.ucshandle import UcsHandle
+
+
+
+
+def main():
+    """MAIN function"""
+
+    # Default username (default fro user arg)
+    username = getpass.getuser()
+
+    # Read confguration from config files
+    configuration = lib.ucstcfg.get_configuration()
+    configured_envs = lib.ucstcfg.get_configured_envs(configuration)
+
+    # Get choices for env args
+    env_choices = list(configured_envs)
+    env_choices.append('all')
+    env_choices.append('none')
+
+    # Create parser
+    parser = argparse.ArgumentParser(
+        description='Do UCS action for specied envs.')
+    parser.add_argument('envs', metavar='ENV_NAME', type=str,
+                        nargs='*',
+                        help='Loop over defined UCS environments. (Default: all, use -l / --list to see ENV configuration)',
+                        choices=env_choices, default='none')
+    parser.add_argument('-u', '--user', type=str, default=username,
+                        help='username (Default: local username)')
+    parser.add_argument('-l', '--list',
+                        action='store_true',
+                        help='List configured UCS environments')
+
+    # Parse arguments
+    args = parser.parse_args()
+
+    # Run som,e action or just list configured envs
+    if args.list:
+        print('Available UCS environments (or use "all"):\n' +
+              str(configured_envs) + '\n')
+    else:
+        if 'none' in args.envs:
+            print("Please specify at least on UCS environment:\n" +
+                  str(configured_envs) + "\nor use 'all'.")
+            sys.exit(1)
+
+        # User + password
+        user = args.user
+        password = getpass.getpass('Password:')
+
+        # Run action for all specified envs (all or specified)
+        if 'all' in args.envs:
+            ucs_kick(configured_envs, configuration, user, password)
+        else:
+            ucs_kick(args.envs, configuration, user, password)
+
+
+def ucs_kick(env_list, configuration, user="", password=""):
+
+    for env in env_list:
+        try:
+            hostname = configuration.get(env, "hostname")
+            handle = UcsHandle(hostname, user, password)
+            handle.login()
+            mo_list = handle.query_classid("FaultInst")
+            pp = lib.printer.MyPrint()
+
+            pp.print_plain("*** " + env + " ***")
+            for mo in mo_list:
+                if "cleared" not in mo.severity and "info" not in mo.severity:
+                    if "major" in mo.severity:
+                        pp.print_crit(mo.created + '\t' +
+                                      mo.dn + '\t' + mo.descr)
+                    elif "minor" in mo.severity:
+                        pp.print_crit(mo.created + '\t' +
+                                      mo.dn + '\t' + mo.descr)
+                    elif "warning" in mo.severity:
+                        pp.print_wrn(mo.created + '\t' +
+                                     mo.dn + '\t' + mo.descr)
+                    else:
+                        pp.print_blue(mo.created + '\t' + mo.dn + '\t' + mo.descr)
+            handle.logout()
+        except:
+            handle.logout()
+            raise
+
+
+# MAIN
+if __name__ == '__main__':
+    main()
