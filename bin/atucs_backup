@@ -44,8 +44,11 @@ def main():
 #  fullstate - config-logical - config-system - config-all
     parser.add_argument('--backup',
                         type=str,
-                        help='Specify Type of backup')
-
+                        help='Specify Type of Backup (full-state, config-logical, config-system, config-all)')
+    parser.add_argument('--path',
+                        type=str,
+                        help='Specify Type Backup Path',
+                        default='/tmp')
 
     # Parse arguments
     args = parser.parse_args()
@@ -64,14 +67,15 @@ def main():
         user = args.user
         password = getpass.getpass('Password:')
         backup = args.backup
+        path = args.path
         # Run action for all specified envs (all or specified)
         if 'all' in args.envs:
-            ucs_export(configured_envs, configuration, user, password, backup)
+            ucs_export(configured_envs, configuration, user, password, backup, path)
         else:
-            ucs_export(args.envs, configuration, user, password, backup)
+            ucs_export(args.envs, configuration, user, password, backup, path)
 
 
-def ucs_export(env_list, configuration, user="", password="", backup=""):
+def ucs_export(env_list, configuration, user="", password="", backup="", path=""):
     from ucsmsdk.utils.ucsbackup import backup_ucs
 
     ts1 = time.gmtime()
@@ -85,27 +89,13 @@ def ucs_export(env_list, configuration, user="", password="", backup=""):
             pp = lib.printer.MyPrint()
 
             pp.print_plain("*** " + env + " ***")
-            backup_dir = '/tmp'
             backup_filename = env + '_' + ts2 + '_' + backup +'_config_backup.xml'
 
             backup_ucs(handle,
-             backup_type = backup,
-             file_dir = backup_dir,
-             file_name = backup_filename)
+            backup_type = backup,
+            file_dir = path,
+            file_name = backup_filename)
 
-
-#                if "cleared" not in mo.severity and "info" not in mo.severity:
-#                    if "major" in mo.severity:
-#                        pp.print_crit(mo.created + '\t' +
-#                                      mo.dn + '\t' + mo.descr)
-#                    elif "minor" in mo.severity:
-#                        pp.print_crit(mo.created + '\t' +
-#                                      mo.dn + '\t' + mo.descr)
-#                    elif "warning" in mo.severity:
-#                        pp.print_wrn(mo.created + '\t' +
-#                                     mo.dn + '\t' + mo.descr)
-#                    else:
-#                        pp.print_blue(mo.created + '\t' + mo.dn + '\t' + mo.descr)
             handle.logout()
         except:
             handle.logout()

@@ -1,9 +1,18 @@
 # atucs
 All Things UCS
 
-Scripts for various things that are routinely done in the slow GUI
+** Please Ensure You've Installed The UCSM Python SDK **
 
-Collecting Faults
+Copy ucs.cfg.example either to ucs.cfg in the local dir or to ~/.config/ucs.cfg
+
+
+Scripts for various things that are routinely done in the GUI
+
+atucs_faults
+Collects faults
+
+atucs_backup
+Export or Import UCSM Configs via XML
 
 Opening KVM
 
