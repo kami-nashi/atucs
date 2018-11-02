@@ -44,7 +44,8 @@ def main():
 #  fullstate - config-logical - config-system - config-all
     parser.add_argument('--backup',
                         type=str,
-                        help='Specify Type of Backup (full-state, config-logical, config-system, config-all)')
+                        help='Specify Type of Backup (full-state, config-logical, config-system, config-all)',
+                        default='full-state')
     parser.add_argument('--path',
                         type=str,
                         help='Specify Type Backup Path',
@@ -78,9 +79,6 @@ def main():
 def ucs_export(env_list, configuration, user="", password="", backup="", path=""):
     from ucsmsdk.utils.ucsbackup import backup_ucs
 
-    ts1 = time.gmtime()
-    ts2 = (time.strftime("%Y-%m-%d_%H-%M", ts1))
-
     for env in env_list:
         try:
             hostname = configuration.get(env, "hostname")
@@ -89,12 +87,10 @@ def ucs_export(env_list, configuration, user="", password="", backup="", path=""
             pp = lib.printer.MyPrint()
 
             pp.print_plain("*** " + env + " ***")
-            backup_filename = env + '_' + ts2 + '_' + backup +'_config_backup.xml'
-
             backup_ucs(handle,
-            backup_type = backup,
-            file_dir = path,
-            file_name = backup_filename)
+            backup_type = 'full-state',
+            file_dir = '/tmp',
+            file_name = 'test.xml')
 
             handle.logout()
         except:
